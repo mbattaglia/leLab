@@ -26,7 +26,6 @@ import json
 import logging
 import shlex
 import shutil
-import subprocess
 import sys
 import time
 import urllib.request
@@ -214,47 +213,13 @@ def check_for_update(force: bool = False) -> dict[str, Any]:
 
 
 def handle_update_check() -> dict[str, Any]:
-    return check_for_update()
+    """Update checks are off: they contact GitHub and offer unreviewed code."""
+    return UpdateStatus(update_available=False).model_dump()
 
 
 def handle_run_update() -> UpdateResult:
-    """Run the pip upgrade in-process (best-effort). User must restart after.
-
-    Unlike the /system extra-installs (Popen + background thread + log polling
-    via InstallManager), this is a single blocking subprocess.run: the update is
-    a one-shot, fire-and-restart action with no live log UI, so streaming
-    machinery would be unused complexity. FastAPI runs this sync handler in a
-    threadpool, and the frontend shows a spinner for the duration.
-    """
-    source = get_installed_source()
-    if source is None:
-        return UpdateResult(
-            success=False,
-            message="This install can't auto-update (editable or non-git). "
-            "Update it the way you installed it.",
-        )
-    try:
-        proc = subprocess.run(
-            _build_update_cmd(source["owner"], source["repo"]),
-            capture_output=True,
-            text=True,
-            timeout=600,
-        )
-    except Exception as exc:  # noqa: BLE001 — surface failure to the UI
-        logger.exception("Auto-update subprocess failed")
-        return UpdateResult(success=False, message=f"Update failed: {exc}")
-
-    output = (proc.stdout or "") + (proc.stderr or "")
-    if proc.returncode == 0:
-        global _cache
-        _cache = None  # bust cache so the next check reflects the new install
-        return UpdateResult(
-            success=True,
-            message="Updated. Restart lelab to apply the new version.",
-            output=output,
-        )
+    """Self-update is off: review a new commit, then reinstall it manually."""
     return UpdateResult(
         success=False,
-        message="Update failed. See the output, or run the command manually.",
-        output=output,
+        message="Updates are disabled in this build. Review a newer commit, then reinstall it manually.",
     )

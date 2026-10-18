@@ -10,6 +10,8 @@ const ApiContext = createContext<ApiContextType | undefined>(undefined);
 
 const STORAGE_KEY = "lelab.apiBaseUrl";
 const DEFAULT_LOCALHOST = "http://localhost:8000";
+// The API controls hardware, so a link or stored value may only point at this machine.
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 const httpToWs = (url: string): string => url.replace(/^http(s?):/, "ws$1:");
 
@@ -23,6 +25,10 @@ const resolveInitialBaseUrl = (): string => {
     try {
       const url = new URL(candidate);
       if (url.protocol !== "http:" && url.protocol !== "https:") continue;
+      if (!LOOPBACK_HOSTS.has(url.hostname)) {
+        console.warn("Ignoring non-local API URL:", candidate);
+        continue;
+      }
       const clean = url.href.replace(/\/$/, "");
       window.localStorage.setItem(STORAGE_KEY, clean);
       return clean;

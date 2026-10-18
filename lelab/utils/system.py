@@ -13,9 +13,11 @@
 # limitations under the License.
 
 import contextlib
+import importlib.metadata
 import importlib.util
 import logging
 import queue
+import shlex
 import shutil
 import subprocess
 import sys
@@ -166,8 +168,36 @@ def handle_get_training_extra() -> dict[str, Any]:
     return {"available": TRAINING_AVAILABLE, "install_hint": TRAINING_INSTALL_HINT}
 
 
+def pinned_lerobot_target(package: str) -> str:
+    """Point a `lerobot[extra]` install at the LeRobot commit LeLab pins, not PyPI.
+
+    A plain `lerobot[extra]` would replace the pinned (hardened) LeRobot with the PyPI release.
+    """
+    if not package.startswith("lerobot["):
+        return package
+    try:
+        reqs = importlib.metadata.requires("lelab") or []
+    except importlib.metadata.PackageNotFoundError:
+        return package
+    for req in reqs:
+        name, sep, url = req.partition(" @ ")
+        if sep and name.split("[", 1)[0].strip() == "lerobot":
+            return f"{package} @ {url.split(';', 1)[0].strip()}"
+    return package
+
+
+def installs_disabled(package: str) -> dict[str, Any]:
+    """In-app installs are off: they would add packages the user has not reviewed."""
+    command = shlex.join(_build_install_cmd(pinned_lerobot_target(package)))
+    return {
+        "started": False,
+        "disabled": True,
+        "message": f"In-app installs are disabled. Review the package, then run: {command}",
+    }
+
+
 def handle_install_training_extra() -> dict[str, Any]:
-    return training_install_manager.start()
+    return installs_disabled(training_install_manager.package)
 
 
 def handle_install_training_extra_status() -> dict[str, Any]:
@@ -179,7 +209,7 @@ def handle_get_wandb_extra() -> dict[str, Any]:
 
 
 def handle_install_wandb_extra() -> dict[str, Any]:
-    return wandb_install_manager.start()
+    return installs_disabled(wandb_install_manager.package)
 
 
 def handle_install_wandb_extra_status() -> dict[str, Any]:
@@ -268,7 +298,7 @@ def handle_install_policy_extra(policy_type: str) -> dict[str, Any]:
     mgr = _policy_install_manager(policy_type)
     if mgr is None:
         return {"started": False, "message": f"'{policy_type}' needs no extra package."}
-    return mgr.start()
+    return installs_disabled(mgr.package)
 
 
 def handle_install_policy_extra_status(policy_type: str) -> dict[str, Any]:
