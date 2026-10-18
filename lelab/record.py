@@ -30,6 +30,7 @@ from lerobot.robots.so_follower import SO101FollowerConfig
 # Import the main record functionality to reuse it
 from lerobot.scripts.lerobot_record import RecordConfig
 from lerobot.teleoperators.so_leader import SO101LeaderConfig
+from lerobot.utils.hub import require_hub_online
 
 from .camera_config import lerobot_camera_settings, validate_camera_rotations
 from .episode_media import UnreadableDatasetError, ensure_episode_index
@@ -77,7 +78,7 @@ class RecordingRequest(BaseModel):
     video: bool = True
     push_to_hub: bool = False
     tags: list[str] = []
-    private: bool = False
+    private: bool = True
     resume: bool = False
     streaming_encoding: bool = True
     cameras: dict[str, dict[str, Any]] = {}
@@ -92,7 +93,7 @@ class RecordingRequest(BaseModel):
 class UploadRequest(BaseModel):
     dataset_repo_id: str
     tags: list[str] = []
-    private: bool = False
+    private: bool = True
 
 
 class DatasetInfoRequest(BaseModel):
@@ -730,6 +731,8 @@ def handle_delete_dataset(request: DatasetInfoRequest) -> dict[str, Any]:
 def handle_upload_dataset(request: UploadRequest) -> dict[str, Any]:
     """Handle dataset upload to HuggingFace Hub"""
     try:
+        require_hub_online("Uploading a dataset")
+
         # Import LeRobotDataset to load and upload the dataset
         from lerobot.datasets import LeRobotDataset
 

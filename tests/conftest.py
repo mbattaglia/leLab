@@ -28,7 +28,8 @@ def client() -> Iterator[TestClient]:
     """FastAPI TestClient bound to the real `lelab.server.app`."""
     from lelab.server import app
 
-    with TestClient(app) as c:
+    # The API only answers loopback hosts (see lelab/local_only.py).
+    with TestClient(app, base_url="http://localhost:8000") as c:
         yield c
 
 

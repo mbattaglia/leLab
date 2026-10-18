@@ -1,5 +1,8 @@
 <h1 align="center">🦾 LeLab</h1>
 
+> **Hardened fork.** This fork keeps the API local, disables self-update and in-app installs,
+> keeps the Hub offline by default, and trims dependencies. See [HARDENING.md](HARDENING.md) before installing.
+
 <p align="center">
   <b>The official graphical interface for <a href="https://github.com/huggingface/lerobot">LeRobot</a>.</b>
 </p>

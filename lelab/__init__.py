@@ -13,6 +13,15 @@
 # limitations under the License.
 """LeLab — FastAPI + React web interface around the LeRobot framework."""
 
-from lelab.__version__ import __version__
+import os
+
+# Keep the Hugging Face Hub offline unless the caller opts in with HF_HUB_OFFLINE=0.
+# huggingface_hub reads this once at import, so it is set before anything imports it.
+# Subprocesses (record, rollout, training) inherit it.
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+# No usage telemetry from Hugging Face libraries, also when the Hub is enabled.
+os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+
+from lelab.__version__ import __version__  # noqa: E402
 
 __all__ = ["__version__"]

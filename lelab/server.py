@@ -49,6 +49,7 @@ from .jobs import (
     JobTarget,
     job_registry,
 )
+from .local_only import LocalOnlyMiddleware, allowed_origins
 from .record import (
     DatasetInfoRequest,
     RecordingRequest,
@@ -156,15 +157,17 @@ _FLAVOR_CACHE_TTL_SECONDS = 300.0
 app = FastAPI()
 
 # In dev mode the React app runs on :8080 while the API runs on :8000; in
-# prod they share an origin and CORS is unnecessary. allow_credentials with
-# a wildcard origin is rejected by browsers, so we drop it.
+# prod they share an origin. Only LeLab's own origins may call the API.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=sorted(allowed_origins()),
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Added last so it runs first: rejects other hosts, origins and cross-site requests,
+# including WebSocket handshakes, which CORS does not cover.
+app.add_middleware(LocalOnlyMiddleware)
 
 FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"
 
@@ -856,10 +859,14 @@ def get_training_extra():
     return handle_get_training_extra()
 
 
+def _install_response(result: dict[str, Any]) -> JSONResponse:
+    return JSONResponse(status_code=403 if result.get("disabled") else 200, content=result)
+
+
 @app.post("/system/training-extra/install")
 def install_training_extra():
-    """Spawn `pip install accelerate` as a background subprocess. No-op if already running."""
-    return handle_install_training_extra()
+    """Disabled: responds with the command to run manually."""
+    return _install_response(handle_install_training_extra())
 
 
 @app.get("/system/training-extra/install-status")
@@ -876,8 +883,8 @@ def get_wandb_extra():
 
 @app.post("/system/wandb-extra/install")
 def install_wandb_extra():
-    """Spawn `pip install wandb` as a background subprocess. No-op if already running."""
-    return handle_install_wandb_extra()
+    """Disabled: responds with the command to run manually."""
+    return _install_response(handle_install_wandb_extra())
 
 
 @app.get("/system/wandb-extra/install-status")
@@ -895,8 +902,8 @@ def get_policy_extra(policy_type: str):
 
 @app.post("/system/policy-extra/{policy_type}/install")
 def install_policy_extra(policy_type: str):
-    """Spawn `pip install lerobot[<extra>]` for the policy's extra in the background."""
-    return handle_install_policy_extra(policy_type)
+    """Disabled: responds with the command to run manually, or a no-op for core policies."""
+    return _install_response(handle_install_policy_extra(policy_type))
 
 
 @app.get("/system/policy-extra/{policy_type}/install-status")
@@ -913,8 +920,8 @@ def update_check():
 
 @app.post("/system/update")
 def run_update():
-    """Run the pip upgrade in-process; the user must restart lelab afterwards."""
-    return handle_run_update()
+    """Disabled: LeLab never updates itself."""
+    return JSONResponse(status_code=403, content=handle_run_update().model_dump())
 
 
 # Datasets with files on disk are browsed locally (see the /dataset-* routes above).

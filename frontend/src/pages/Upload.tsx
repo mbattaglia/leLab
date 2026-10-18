@@ -55,7 +55,7 @@ const Upload = () => {
   // Upload configuration state
   const [uploadConfig, setUploadConfig] = useState<UploadConfig>({
     tags: ["robotics", "lerobot"],
-    private: false,
+    private: true,
   });
 
   const [tagsInput, setTagsInput] = useState(uploadConfig.tags.join(", "));
