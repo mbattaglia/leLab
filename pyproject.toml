@@ -19,7 +19,7 @@ dependencies = [
     "psutil>=5.9.0",
     # Hardened LeRobot fork (offline by default, private uploads), pinned to a reviewed commit.
     # Only what LeLab imports: Feetech motors, datasets/video, keyboard events.
-    "lerobot[feetech,dataset,pynput-dep] @ git+https://github.com/mbattaglia/lerobot.git@ad5ba8935dbc59adcc64828ad3acc7af337d918c",
+    "lerobot[feetech,dataset,pynput-dep] @ git+https://github.com/mbattaglia/lerobot.git@b5f0e8f33fca0e462eb3fd84cf7cb95e78324592",
     # Windows-only: real DirectShow camera names for /available-cameras so the
     # frontend can match a camera to its browser deviceId (issues #12, #16).
     # Guarded by try/except at the call site, so its absence degrades gracefully.
